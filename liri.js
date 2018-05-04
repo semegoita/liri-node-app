@@ -1,72 +1,137 @@
 require("dotenv").config();
 
-var request = require("request");
-var keys = require("./keys");
-//console.log(keys);
+var keys = require("./keys.js");
 var Twitter = require('twitter');
-//console.log(Twitter);
 var Spotify = require('node-spotify-api');
-
-var fs = require('fs');
+var request = require("request");
+var fs = require("fs");
 
 var spotify = new Spotify(keys.spotify);
-
 var client = new Twitter(keys.twitter);
-var inputString = process.argv[2];
-//var value = process.argv.slice(3);
-if (inputString = myTweets) {
-  myTweets();
+
+var action = process.argv[2];
+var value = process.argv.slice(3);
+
+switch (action) {
+  case "my-tweets":
+    getTwitter();
+    break;
+
+  case "spotify-this-song":
+    if (process.argv.length < 4) {
+      value = "The Sign"
+    }
+    getSpotify(value);
+    break;
+
+  case "movie-this":
+    if (process.argv.length < 4) {
+      value = "Mr Nobody"
+    }
+    getMovie();
+    break;
+
+  case "do-what-it-says":
+    doIt();
+    break;
 
 }
 
+function getTwitter() {
+  var params = { screen_name: 'Seme Goita', count: 21 };
+  client.get('statuses/user_timeline', params, function (error, tweets, response) {
+    if (!error) {
+      for (var i = 0; i < tweets.length; i++) {
+        var tweetInfo = (
+          "-----------------------------------------" +
+          "\n @semegoita: " + tweets[i].text + "\n Created At: " + tweets[i].created_at +
+          "\n-----------------------------------------");
+        console.log(tweetInfo);
 
-function myTweets() {
+        // fs.appendFile("twitterLog.txt", tweetInfo, function(err) {
+        //   if (err) {
+        //     console.log(err);
+        //   }
+        
+        // });
 
-  var params = { screen_name: 'semegoita', count: 21 };
+      }
 
-  client.stream('statuses/filter', { track: 'twitter' }, function (stream) {
-    stream.on('data', function (tweet) {
-      console.log(tweet.text);
-    });
-
-    stream.on('error', function (error) {
-      console.log(error);
-    });
+    }
   });
 }
 
-// function spotifyThisSong(){
-// spotify.search({ type: 'track', query: 'All the Small Things' }, function (err, data) {
-//   if (err) {
-//     return console.log('Error occurred: ' + err);
-//   }
+function getSpotify(value) {
+  spotify.search({ type: 'track', query: value }, function (err, data) {
+    if (err) {
+      return console.log('Error occurred: ' + err);
+    }
 
-//   console.log(data.tracks.items[0]);
-// });
-// }
+    var song = data.tracks.items[0]
+    var songInfo = (
+      "-----------------------------------------" +
+      "\r\n Artist(s): " + song.artists[0].name +
+      "\r\n Song Title: " + song.name +
+      "\r\n Preview Song: " + song.preview_url +
+      "\r\n Album: " + song.album.name +
+      "\r\n-----------------------------------------");
+    console.log(songInfo);
 
-// function movieThis(){
+    // fs.appendFile("spotifyLog.txt", songInfo, function(err) {
 
-//   // Grab the movieName which will always be the third node argument.
-//   var movieName = process.argv[2];
+    //   if (err) {
+    //     console.log(err);
+    //   }
+    
+    //   else {
+    //     console.log("Content Added to Text File!");
+    //   }
+    
+    // });
+  })
+}
 
-//   // Then run a request to the OMDB API with the movie specified
-//   var queryUrl = "http://www.omdbapi.com/?t=" + movieName + "&y=&plot=short&apikey=trilogy";
+function getMovie() {
 
-//   // This line is just to help us debug against the actual URL.
-//   console.log(queryUrl);
+  request("http://www.omdbapi.com/?t=" + value + "&y=&plot=short&apikey=trilogy", function (error, response, body) {
 
-//   request(queryUrl, function(error, response, body) {
+    if (!error && response.statusCode === 200) {
+      
+      var movieInfo = (
+        "-------------------------------------------" +
+        "\n Movie Title: " + JSON.parse(body).Title +
+        "\n Year: " + JSON.parse(body).Year +
+        "\n IMDB Rating: " + JSON.parse(body).imdbRating +
+        "\n Rotten Tomatoes Rating: " + JSON.parse(body).Ratings[1].Value +
+        "\n Produced In: " + JSON.parse(body).Country +
+        "\n Language: " + JSON.parse(body).Language +
+        "\n Plot: " + JSON.parse(body).Plot +
+        "\n Actors: " + JSON.parse(body).Actors +
+        "\n-------------------------------------------");
+      console.log(movieInfo);
 
-//     // If the request is successful
-//     if (!error && response.statusCode === 200) {
+      // fs.appendFile("omdbLog.txt", movieInfo, function(err) {
 
-//       // Parse the body of the site and recover just the imdbRating
-//       // (Note: The syntax below for parsing isn't obvious. Just spend a few moments dissecting it).
-//       console.log( "The Movie title is: " + JSON.parse(body).title +"\nRelease Year: " + JSON.parse(body).Year + "\nIMDB Rating of the movie: " + JSON.parse(body).IMDBrating)
-//     }
-//   });
-// }
-// function doWhatItSays(){
+      //   if (err) {
+      //     console.log(err);
+      //   }
+      
+      //   else {
+      //     console.log("Content Added to Text File!");
+      //   }
+      
+      // });
 
-// }
+    }
+
+  });
+}
+
+function doIt() {
+  fs.readFile('random.txt', "utf8", function (error, data) {
+    var txt = data.split(',');
+
+    getSpotify(txt[1]);
+  });
+}
+
